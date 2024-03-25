@@ -12,3 +12,54 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  bookings Booking[]
+
+  @@map("users")
+}
+
+model Booking {
+  id        String   @id @default(uuid())
+  date      DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  slot   Slot   @relation(fields: [slotId], references: [id])
+  slotId String @map("slot_id")
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId String @map("room_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+
+  @@unique([slotId, roomId, userId])
+  @@index([userId])
+  @@map("bookings")
+}
+
+model Slot {
+  id    String @id @default(uuid())
+  start String
+  end   String
+
+  bookings Booking[]
+
+  @@map("slots")
+}
+
+model Room {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  bookings Booking[]
+
+  @@map("rooms")
+}
