@@ -17,3 +17,12 @@ services:
       - db
     environment:
       DATABASE_URL: postgres://postgres:0p9o8i@db:5432/nn?schema=custom
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - '6379:6379'
+    environment:
+      - REDIS_PASSWORD=my-password
+      - REDIS_PORT=6379
+      - REDIS_DATABASES=1
