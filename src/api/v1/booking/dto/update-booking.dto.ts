@@ -1,4 +1,8 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateBookingDto } from './create-booking.dto';
+import { PickType } from '@nestjs/swagger';
+import { CreateBookingBodyDto } from './create-booking.dto';
 
-export class UpdateBookingDto extends PartialType(CreateBookingDto) {}
+export class UpdateBookingDto extends PickType(CreateBookingBodyDto, [
+  'date',
+  'checkIn',
+  'checkOut',
+]) {}

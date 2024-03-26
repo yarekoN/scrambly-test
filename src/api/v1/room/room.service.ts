@@ -1,26 +1,75 @@
-import { Injectable } from '@nestjs/common';
-import { CreateRoomBodyDto } from './dto/create-room.dto';
-import { UpdateRoomDto } from './dto/update-room.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../../common/prisma/prisma.service';
+import { panic } from 'panic-fn';
 
 @Injectable()
 export class RoomService {
-  create(createRoomDto: CreateRoomBodyDto) {
-    return 'This action adds a new room';
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findAll() {
+    return this.prisma.room.findMany();
   }
 
-  findAll() {
-    return `This action returns all room`;
+  async getById(id: string) {
+    return this.prisma.room.findUnique({
+      where: { id },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} room`;
+  async getByIdOrThrow(id: string) {
+    const room = this.getById(id);
+
+    if (!room) {
+      panic(new NotFoundException('Room not found'));
+    }
+
+    return room;
   }
 
-  update(id: number, updateRoomDto: UpdateRoomDto) {
-    return `This action updates a #${id} room`;
+  async listFreeSlotsByRoomId(roomId: string) {
+    await this.getByIdOrThrow(roomId);
+
+    return await this.prisma.slot.findMany({
+      where: {
+        bookings: {
+          none: {
+            roomId,
+          },
+        },
+      },
+      select: { checkIn: true, checkOut: true },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} room`;
+  async getAvailabilityById(roomId: string) {
+    await this.getByIdOrThrow(roomId);
+
+    const freeSlots = await this.prisma.slot.findMany({
+      where: {
+        bookings: {
+          none: {
+            roomId,
+          },
+        },
+      },
+    });
+
+    const isAvailable = freeSlots.length > 0;
+
+    return { isAvailable };
+  }
+
+  async listSlotsByRoomId(roomId: string) {
+    await this.getByIdOrThrow(roomId);
+
+    const slots = await this.prisma.slot.findMany({
+      include: { bookings: { where: { roomId } } },
+    });
+
+    return slots.map(({ checkIn, checkOut, bookings }) => ({
+      checkIn,
+      checkOut,
+      isBooked: bookings.length > 0,
+    }));
   }
 }

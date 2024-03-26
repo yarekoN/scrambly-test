@@ -1,34 +1,67 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
+import { CacheTTL } from '@nestjs/cache-manager';
 import { BookingService } from './booking.service';
-import { CreateBookingDto } from './dto/create-booking.dto';
+import { CreateBookingBodyDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
+import { ApiVersions } from '../../../common/openapi/api-version';
+import { AuthGuard } from '../../common/guards/auth.guard';
+import { BookingIdParamDto } from './dto/booking-id-param.dto';
+import { UserInfo } from '../../common/decorators/user-info.decorator';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-@Controller('booking')
+@Controller({ path: 'booking', version: ApiVersions.First })
+@ApiTags('Booking')
+@ApiBearerAuth('bearer')
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
   @Post()
-  create(@Body() createBookingDto: CreateBookingDto) {
-    return this.bookingService.create(createBookingDto);
+  @UseGuards(AuthGuard)
+  create(@UserInfo() user: UserInfo, @Body() body: CreateBookingBodyDto) {
+    return this.bookingService.create(body, user.id);
   }
 
-  @Get()
-  findAll() {
-    return this.bookingService.findAll();
+  @Get('my')
+  @CacheTTL(60)
+  @UseGuards(AuthGuard)
+  findMyBookings(@UserInfo() user: UserInfo) {
+    return this.bookingService.listByUserId(user.id);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.bookingService.findOne(+id);
+  @Get(':bookingId')
+  @UseGuards(AuthGuard)
+  findOneBooking(
+    @UserInfo() user: UserInfo,
+    @Param() { bookingId }: BookingIdParamDto,
+  ) {
+    return this.bookingService.getByIdOrThrow(bookingId, user.id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateBookingDto: UpdateBookingDto) {
-    return this.bookingService.update(+id, updateBookingDto);
+  @Patch(':bookingId')
+  @UseGuards(AuthGuard)
+  update(
+    @UserInfo() user: UserInfo,
+    @Param() { bookingId }: BookingIdParamDto,
+    @Body() body: UpdateBookingDto,
+  ) {
+    return this.bookingService.update(bookingId, body, user.id);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.bookingService.remove(+id);
+  @Delete(':bookingId')
+  @UseGuards(AuthGuard)
+  remove(
+    @UserInfo() user: UserInfo,
+    @Param() { bookingId }: BookingIdParamDto,
+  ) {
+    return this.bookingService.remove(bookingId, user.id);
   }
 }

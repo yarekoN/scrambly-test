@@ -26,11 +26,9 @@ function setupDocumentsForEachVersion(
   ...apis: { version: ApiVersions; module: Type<any> }[]
 ) {
   apis.forEach(({ version, module }) => {
-    const docsPath = `${SWAGGER_BASE}${version}`;
+    const serverPathPrefix = version && `v${version}`;
+    const docsPath = `${SWAGGER_BASE}${serverPathPrefix}`;
     const openAPIPath = `${docsPath}${SPEC_PATH}`;
-
-    const serverPathPrefix =
-      version === ApiVersions.Neutral ? '' : `/v${version}`;
 
     const document = SwaggerModule.createDocument(
       app,
@@ -40,7 +38,17 @@ function setupDocumentsForEachVersion(
           `<a href="${openAPIPath}">OpenAPI Document (CLICK ME TO GET POSTMAN COLLECTION)</a>`,
         )
         .setVersion('0.0.1')
-        .addServer(serverPathPrefix)
+        .addBearerAuth(
+          {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+            name: 'JWT',
+            description: 'Enter JWT token',
+            in: 'header',
+          },
+          'bearer',
+        )
         .build(),
       { include: [module], deepScanRoutes: true },
     );

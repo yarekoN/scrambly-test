@@ -45,9 +45,9 @@ model Booking {
 }
 
 model Slot {
-  id    String @id @default(uuid())
-  start String
-  end   String
+  id       String @id @default(uuid())
+  checkIn  String @map("check_in")
+  checkOut String @map("check_out")
 
   bookings Booking[]
 
